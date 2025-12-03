@@ -1,0 +1,34 @@
+# Example Dockerfile showing how to use the chunked GeoLite2-City database
+FROM golang:alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git make
+
+# Clone webircgateway
+RUN git clone https://github.com/kiwiirc/webircgateway.git /src/webircgateway
+
+# Copy plugin source
+COPY plugin.go /src/webircgateway/plugins/geoip/
+COPY *.gz /src/webircgateway/
+COPY mmdb-manager.sh /src/webircgateway/
+
+# Reassemble the GeoLite2-City database
+WORKDIR /src/webircgateway
+RUN chmod +x mmdb-manager.sh && ./mmdb-manager.sh reassemble
+
+# Build webircgateway with plugin
+RUN make
+
+# Runtime image
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates
+
+# Copy built binary and database
+COPY --from=builder /src/webircgateway/webircgateway /usr/local/bin/
+COPY --from=builder /src/webircgateway/GeoLite2-City.mmdb /usr/local/bin/
+
+# Set default granularity (can be overridden at runtime)
+ENV GEOIP_GRANULARITY=country
+
+EXPOSE 7778
+CMD ["/usr/local/bin/webircgateway"]

@@ -1,0 +1,6 @@
+# Ignore large uncompressed MMDB files
+*.mmdb
+*.mmdb.original
+
+# Keep compressed chunks
+!*.mmdb.chunk.*.gz

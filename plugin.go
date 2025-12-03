@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/kiwiirc/webircgateway/pkg/webircgateway"
-	"github.com/oschwald/geoip2-golang"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
+
+	"github.com/kiwiirc/webircgateway/pkg/webircgateway"
+	"github.com/oschwald/geoip2-golang"
 )
 
 var db *geoip2.Reader
@@ -50,12 +50,19 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 		return
 	}
 
-	hook.Client.Gateway.Log(2, "GeoIP Plugin: "+record.Country.IsoCode)
-	makeRealNameReplacements(hook.Client, record)
-}
+	countryCode := record.Country.IsoCode
+	countryName := record.Country.Names["en"]
 
-func makeRealNameReplacements(client *webircgateway.Client, record *geoip2.City) {
-	realName := client.IrcState.RealName
-	realName = strings.Replace(realName, "%country", record.Country.IsoCode, -1)
-	client.IrcState.RealName = realName
+	hook.Client.Gateway.Log(2, "GeoIP Plugin: %s (%s)", countryCode, countryName)
+
+	if hook.Client.Tags == nil {
+		hook.Client.Tags = make(map[string]string)
+	}
+
+	if countryCode != "" {
+		hook.Client.Tags["location/country-code"] = countryCode
+	}
+	if countryName != "" {
+		hook.Client.Tags["location/country-name"] = countryName
+	}
 }

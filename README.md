@@ -9,7 +9,7 @@ See kiwiirc/webircgateway https://github.com/kiwiirc/webircgateway
 git clone https://github.com/kiwiirc/webircgateway.git
 
 # clone plugin
-git clone https://github.com/obsh/webircgateway-geoip.git
+git clone https://github.com/relayos/webircgateway-geoip.git
 
 # create folder for geoip plugin
 mkdir webircgateway/plugins/geoip
@@ -24,13 +24,22 @@ cd webircgateway && make
 
 ## Usage
 
-- enable plugin in webircgateway config.conf:
+Enable plugin in webircgateway config.conf:
 ```
 [plugins]
 plugins/geoip.so
 ```
 
-The plugin substitues `%country` macro in realname with ISO 3166-2 two letter country code detected by client's IP address.
+## WEBIRC Flags
+
+The plugin sets the following WEBIRC flags (passed to the IRC server):
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `location/country-code` | ISO 3166-1 alpha-2 country code | `US` |
+| `location/country-name` | English country name | `United States` |
+
+These flags can be read by IRC server modules (e.g., InspIRCd's `m_webirc_metadata`) and converted to IRCv3 metadata.
 
 ## Notes
 

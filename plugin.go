@@ -79,22 +79,12 @@ func Start(gateway *webircgateway.Gateway, pluginsQuit *sync.WaitGroup) {
 func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	ip := net.ParseIP(hook.Client.RemoteAddr)
 	record, err := db.City(ip)
+
+	// Fallback to Antarctica if lookup fails
 	if err != nil || record == nil || record.Country.IsoCode == "" {
 		setGeoTags(hook, "AQ", "Antarctica")
 		return
 	}
-
-	code := record.Country.IsoCode
-	name := record.Country.Names["en"]
-	if name == "" {
-		name = code
-	}
-
-	setGeoTags(hook, code, name)
-	makeRealNameReplacements(hook.Client, record)
-}
-
-	hook.Client.Gateway.Log(2, "GeoIP Plugin: %s (%s)", countryCode, countryName)
 
 	if hook.Client.Tags == nil {
 		hook.Client.Tags = make(map[string]string)
@@ -107,9 +97,10 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	}
 
 	// Include country data (level 2)
+	var countryCode, countryName string
 	if granularityLevel >= GranularityCountry {
-		countryCode := record.Country.IsoCode
-		countryName := record.Country.Names["en"]
+		countryCode = record.Country.IsoCode
+		countryName = record.Country.Names["en"]
 		if countryCode != "" {
 			hook.Client.Tags["location/country-code"] = countryCode
 		}
@@ -148,10 +139,22 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 		}
 	}
 
-	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): %s/%s, %s", granularityLevel, hook.Client.Tags["location/country-code"], subdivisionName, cityName)
+	// Set the geo/ tags for WEBIRC (always set these for IRC integration)
+	code := record.Country.IsoCode
+	name := record.Country.Names["en"]
+	if name == "" {
+		name = code
+	}
+	setGeoTags(hook, code, name)
+
+	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): %s/%s, %s", granularityLevel, countryCode, subdivisionName, cityName)
 }
 
 func setGeoTags(hook *webircgateway.HookIrcConnectionPre, code, name string) {
+	if hook.Client.Tags == nil {
+		hook.Client.Tags = make(map[string]string)
+	}
+
 	// Keep tag values space-safe for WEBIRC flags
 	safeCode := strings.ReplaceAll(code, " ", "_")
 	safeName := strings.ReplaceAll(name, " ", "_")

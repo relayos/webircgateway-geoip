@@ -79,11 +79,22 @@ func Start(gateway *webircgateway.Gateway, pluginsQuit *sync.WaitGroup) {
 func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	ip := net.ParseIP(hook.Client.RemoteAddr)
 	record, err := db.City(ip)
-	if err != nil {
-		hook.Client.Log(3, "Cannot find information about IP: "+ip.String())
-		hook.Client.Log(3, err.Error())
+	if err != nil || record == nil || record.Country.IsoCode == "" {
+		setGeoTags(hook, "AQ", "Antarctica")
 		return
 	}
+
+	code := record.Country.IsoCode
+	name := record.Country.Names["en"]
+	if name == "" {
+		name = code
+	}
+
+	setGeoTags(hook, code, name)
+	makeRealNameReplacements(hook.Client, record)
+}
+
+	hook.Client.Gateway.Log(2, "GeoIP Plugin: %s (%s)", countryCode, countryName)
 
 	if hook.Client.Tags == nil {
 		hook.Client.Tags = make(map[string]string)
@@ -138,4 +149,13 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	}
 
 	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): %s/%s, %s", granularityLevel, hook.Client.Tags["location/country-code"], subdivisionName, cityName)
+}
+
+func setGeoTags(hook *webircgateway.HookIrcConnectionPre, code, name string) {
+	// Keep tag values space-safe for WEBIRC flags
+	safeCode := strings.ReplaceAll(code, " ", "_")
+	safeName := strings.ReplaceAll(name, " ", "_")
+
+	hook.Client.Tags["geo/country-code"] = safeCode
+	hook.Client.Tags["geo/country"] = safeName
 }

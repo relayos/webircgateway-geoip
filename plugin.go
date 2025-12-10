@@ -80,85 +80,68 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	ip := net.ParseIP(hook.Client.RemoteAddr)
 	record, err := db.City(ip)
 
-	// Fallback to Antarctica if lookup fails
-	if err != nil || record == nil || record.Country.IsoCode == "" {
-		setGeoTags(hook, "AQ", "Antarctica")
-		return
-	}
-
 	if hook.Client.Tags == nil {
 		hook.Client.Tags = make(map[string]string)
 	}
 
+	setTag := func(key, value string) {
+		if value == "" {
+			return
+		}
+		hook.Client.Tags[key] = strings.ReplaceAll(value, " ", "_")
+	}
+
+	// Fallback to Antarctica if lookup fails
+	if err != nil || record == nil || record.Country.IsoCode == "" {
+		setTag("geo/country-code", "AQ")
+		setTag("geo/country-name", "Antarctica")
+		return
+	}
+
 	// Always include timezone (level 1)
-	timeZone := record.Location.TimeZone
-	if timeZone != "" && granularityLevel >= GranularityTimezone {
-		hook.Client.Tags["location/timezone"] = timeZone
+	var timeZone string
+	if granularityLevel >= GranularityTimezone {
+		timeZone = record.Location.TimeZone
+		setTag("geo/timezone", timeZone)
 	}
 
 	// Include country data (level 2)
-	var countryCode, countryName string
+	countryCode := record.Country.IsoCode
+	countryName := record.Country.Names["en"]
+	if countryName == "" {
+		countryName = countryCode
+	}
 	if granularityLevel >= GranularityCountry {
-		countryCode = record.Country.IsoCode
-		countryName = record.Country.Names["en"]
-		if countryCode != "" {
-			hook.Client.Tags["location/country-code"] = countryCode
-		}
-		if countryName != "" {
-			hook.Client.Tags["location/country-name"] = countryName
-		}
+		setTag("geo/country-code", countryCode)
+		setTag("geo/country-name", countryName)
 	}
 
 	// Include subdivision data (level 3)
 	var subdivisionName string
 	if granularityLevel >= GranularitySubdivision && len(record.Subdivisions) > 0 {
-		subdivisionName = record.Subdivisions[0].Names["en"]
-		subdivisionCode := record.Subdivisions[0].IsoCode
-		if subdivisionCode != "" {
-			subdivisionName = subdivisionCode
+		subdivisionName = record.Subdivisions[0].IsoCode
+		if subdivisionName == "" {
+			subdivisionName = record.Subdivisions[0].Names["en"]
 		}
-		if subdivisionName != "" {
-			hook.Client.Tags["location/subdivision-name"] = subdivisionName
-		}
+		setTag("geo/subdivision-name", subdivisionName)
 	}
 
 	// Include city data (level 4)
 	var cityName string
 	if granularityLevel >= GranularityCity {
 		cityName = record.City.Names["en"]
-		if cityName != "" {
-			hook.Client.Tags["location/city-name"] = cityName
-		}
+		setTag("geo/city-name", cityName)
 	}
 
 	// Include postal code data (level 5)
 	if granularityLevel >= GranularityPostal {
 		postalCode := record.Postal.Code
-		if postalCode != "" {
-			hook.Client.Tags["location/postal-code"] = postalCode
-		}
+		setTag("geo/postal-code", postalCode)
 	}
 
-	// Set the geo/ tags for WEBIRC (always set these for IRC integration)
-	code := record.Country.IsoCode
-	name := record.Country.Names["en"]
-	if name == "" {
-		name = code
-	}
-	setGeoTags(hook, code, name)
+	// Ensure country tags are always present for IRC integration
+	setTag("geo/country-code", countryCode)
+	setTag("geo/country-name", countryName)
 
 	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): %s/%s, %s", granularityLevel, countryCode, subdivisionName, cityName)
-}
-
-func setGeoTags(hook *webircgateway.HookIrcConnectionPre, code, name string) {
-	if hook.Client.Tags == nil {
-		hook.Client.Tags = make(map[string]string)
-	}
-
-	// Keep tag values space-safe for WEBIRC flags
-	safeCode := strings.ReplaceAll(code, " ", "_")
-	safeName := strings.ReplaceAll(name, " ", "_")
-
-	hook.Client.Tags["geo/country-code"] = safeCode
-	hook.Client.Tags["geo/country"] = safeName
 }

@@ -64,12 +64,12 @@ The plugin sets the following WEBIRC flags (passed to the IRC server):
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `location/country-code` | ISO 3166-1 alpha-2 country code | `US` |
-| `location/country-name` | English country name | `United States` |
-| `location/city-name` | English city name | `New York` |
-| `location/subdivision-name` | State/province name or code | `NY` |
-| `location/postal-code` | Postal/ZIP code | `10001` |
-| `location/timezone` | Time zone identifier | `America/New_York` |
+| `geo/country-code` | ISO 3166-1 alpha-2 country code | `US` |
+| `geo/country-name` | English country name | `United States` |
+| `geo/city-name` | English city name | `New York` |
+| `geo/subdivision-name` | State/province name or code | `NY` |
+| `geo/postal-code` | Postal/ZIP code | `10001` |
+| `geo/timezone` | Time zone identifier | `America/New_York` |
 
 These flags can be read by IRC server modules (e.g., InspIRCd's `m_webirc_metadata`) and converted to IRCv3 metadata.
 

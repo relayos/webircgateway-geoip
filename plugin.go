@@ -143,5 +143,10 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	setTag("geo/country-code", countryCode)
 	setTag("geo/country-name", countryName)
 
+	// Replace %country macro in realname with ISO country code
+	if hook.Client.IrcState.RealName != "" && strings.Contains(hook.Client.IrcState.RealName, "%country") {
+		hook.Client.IrcState.RealName = strings.Replace(hook.Client.IrcState.RealName, "%country", countryCode, -1)
+	}
+
 	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): %s/%s, %s", granularityLevel, countryCode, subdivisionName, cityName)
 }

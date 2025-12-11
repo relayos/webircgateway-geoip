@@ -73,6 +73,17 @@ The plugin sets the following WEBIRC flags (passed to the IRC server):
 
 These flags can be read by IRC server modules (e.g., InspIRCd's `m_webirc_metadata`) and converted to IRCv3 metadata.
 
+## Realname Macro Substitution
+
+The plugin substitutes `%country` macro in the client's realname with the ISO 3166-1 alpha-2 country code detected from the client's IP address.
+
+**Example**:
+- Client connects with realname: `User from %country`
+- Client IP resolves to United States
+- Final realname: `User from US`
+
+This allows IRC clients to embed geographic information in their realname without exposing their IP address.
+
 ## Database Management
 
 The GeoLite2-City database (60MB) is stored in git as compressed chunks to avoid size limits:

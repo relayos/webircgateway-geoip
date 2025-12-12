@@ -111,6 +111,11 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	if countryName == "" {
 		countryName = countryCode
 	}
+	// Normalize MaxMind's anonymous/reserved code to AQ fallback
+	if countryCode == "--" {
+		countryCode = "AQ"
+		countryName = "Antarctica"
+	}
 	if granularityLevel >= GranularityCountry {
 		setTag("geo/country-code", countryCode)
 		setTag("geo/country-name", countryName)

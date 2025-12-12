@@ -95,6 +95,7 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 	if err != nil || record == nil || record.Country.IsoCode == "" {
 		setTag("geo/country-code", "AQ")
 		setTag("geo/country-name", "Antarctica")
+		hook.Client.Gateway.Log(2, "GeoIP Plugin: lookup failed for %s, falling back to AQ", hook.Client.RemoteAddr)
 		return
 	}
 
@@ -153,14 +154,10 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 		setTag("geo/postal-code", postalCode)
 	}
 
-	// Ensure country tags are always present for IRC integration
-	setTag("geo/country-code", countryCode)
-	setTag("geo/country-name", countryName)
-
 	// Replace %country macro in realname with ISO country code
 	if hook.Client.IrcState.RealName != "" && strings.Contains(hook.Client.IrcState.RealName, "%country") {
 		hook.Client.IrcState.RealName = strings.Replace(hook.Client.IrcState.RealName, "%country", countryCode, -1)
 	}
 
-	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): %s/%s, %s", granularityLevel, countryCode, subdivisionName, cityName)
+	hook.Client.Gateway.Log(2, "GeoIP Plugin (level %d): ip=%s country=%s region=%s city=%s", granularityLevel, hook.Client.RemoteAddr, countryCode, subdivisionCode, cityName)
 }

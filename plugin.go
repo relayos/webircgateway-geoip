@@ -123,12 +123,21 @@ func hookIrcConnectionPre(hook *webircgateway.HookIrcConnectionPre) {
 
 	// Include subdivision data (level 3)
 	var subdivisionName string
+	var subdivisionCode string
 	if granularityLevel >= GranularitySubdivision && len(record.Subdivisions) > 0 {
-		subdivisionName = record.Subdivisions[0].IsoCode
+		subdivisionCode = record.Subdivisions[0].IsoCode
+		subdivisionName = record.Subdivisions[0].Names["en"]
 		if subdivisionName == "" {
-			subdivisionName = record.Subdivisions[0].Names["en"]
+			subdivisionName = subdivisionCode
 		}
 		setTag("geo/subdivision-name", subdivisionName)
+		setTag("geo/subdivision-code", subdivisionCode)
+
+		// Also expose ISO-3166-2 region code/name (country-subdivision)
+		if countryCode != "" && subdivisionCode != "" {
+			setTag("geo/region-code", countryCode+"-"+subdivisionCode)
+			setTag("geo/region-name", subdivisionName)
+		}
 	}
 
 	// Include city data (level 4)
